@@ -29,7 +29,10 @@ output_path = args.output_path
 os.makedirs(output_path, exist_ok=True)
 
 # Cargar el modelo YOLO
-model_yolo = YOLO(args.yolo_path)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Cargar el modelo YOLO en GPU
+model_yolo = YOLO(args.yolo_path).to(device)
 
 # Configuración de transformaciones
 transform = transforms.Compose([
@@ -156,7 +159,7 @@ def cargar_frames(carpeta):
     for frame in sorted(os.listdir(carpeta)):
         if frame.endswith(('.jpg', '.png')):
             img = Image.open(os.path.join(carpeta, frame)).convert('RGB')
-            frames.append(transform(img))
+            frames.append(transform(img).to(device))
 
             label_path = os.path.join(carpeta, 'labels', frame.replace('.jpg', '.txt'))
             if os.path.exists(label_path):
@@ -169,7 +172,7 @@ def cargar_frames(carpeta):
             else:
                 bounding_boxes.append([-1, -1, -1, -1])
 
-    return torch.stack(frames), torch.tensor(bounding_boxes, dtype=torch.float32)
+    return torch.stack(frames), torch.tensor(bounding_boxes, dtype=torch.float32).to(device)
 
 # Procesar carpetas y guardar chops
 resnet50 = ImageFeatureExtractor(model_name='resnet50')
@@ -197,10 +200,12 @@ for carpeta in tqdm(carpetas, desc="Procesando carpetas"):
     data_loader = DataLoader(data, batch_size=1, shuffle=False)
 
     for chop_boxes, labels in tqdm(data_loader, desc=f"Procesando {carpeta}", leave=False):
+        chop_boxes, labels = chop_boxes.to(device), labels.to(device)
         contador += 1
-        torch.save(labels[0], os.path.join(output_path, f"labels_{contador}.pt"))
+        torch.save(labels[0].cpu(), os.path.join(output_path, f"labels_{contador}.pt"))
         for model_name, model in models.items():
-            features = model(chop_boxes[0])
+            features = model(chop_boxes[0]).cpu()
             torch.save(features, os.path.join(output_path, f"{model_name}_{contador}.pt"))
+
 
 print("Proceso completado.")
