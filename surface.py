@@ -2,9 +2,14 @@ import os
 import numpy as np
 
 # Function to calculate average bounding box for a given YOLO labels directory
+import os
+import numpy as np
+
+# Function to calculate average bounding box for a given YOLO labels directory
 def calculate_average_bbox(labels_dir):
     bbox_sums = np.zeros(4)  # To store the sum of (x_center, y_center, width, height)
     bbox_count = 0
+    surface = 0
 
     for label_file in os.listdir(labels_dir):
         if label_file.endswith('.txt'):
@@ -13,32 +18,43 @@ def calculate_average_bbox(labels_dir):
                     # Assuming the format: class_id x_center y_center width height
                     _, x_center, y_center, width, height = map(float, line.split())
                     bbox_sums += np.array([x_center, y_center, width, height])
+                    surface += width * height
                     bbox_count += 1
 
     if bbox_count == 0:
-        return None  # No bounding boxes found in the directory
+        return None, None  # No bounding boxes found in the directory
 
     # Calculate average bounding box
     average_bbox = bbox_sums / bbox_count
-    return average_bbox
+    surface = surface / bbox_count
+    return average_bbox, surface
 
-# Function to find the labels directory recursively
-def find_labels_dir(root_dir):
+# Function to find all labels directories recursively, including train, val, and test
+def find_all_labels_dirs(root_dir):
+    labels_dirs = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
         if 'labels' in dirnames:
-            return os.path.join(dirpath, 'labels')
-    return None
+            labels_path = os.path.join(dirpath, 'labels')
+            subdirs = ['train', 'val', 'test']
+            for subdir in subdirs:
+                subdir_path = os.path.join(labels_path, subdir)
+                if os.path.exists(subdir_path):
+                    labels_dirs.append(subdir_path)
+            if not any(subdir in labels_path for subdir in subdirs):
+                labels_dirs.append(labels_path)
+    return labels_dirs
 
 # Function to iterate over datasets and calculate average bounding boxes
 def main(datasets_dirs):
     for dataset in datasets_dirs:
-        labels_dir = find_labels_dir(dataset)
-        if labels_dir:
-            average_bbox = calculate_average_bbox(labels_dir)
-            if average_bbox is not None:
-                print(f"Average bounding box for {dataset}: {average_bbox}")
-            else:
-                print(f"No bounding boxes found in {dataset}")
+        labels_dirs = find_all_labels_dirs(dataset)
+        if labels_dirs:
+            for labels_dir in labels_dirs:
+                average_bbox, surface = calculate_average_bbox(labels_dir)
+                if average_bbox is not None:
+                    print(f"Average bounding box for {dataset} ({labels_dir}): {average_bbox}, surface: {surface}")
+                else:
+                    print(f"No bounding boxes found in {dataset} ({labels_dir})")
         else:
             print(f"Labels directory not found in {dataset}")
 
