@@ -70,7 +70,7 @@ def make_square_chop(y1, y2, x1, x2, img_height=640, img_width=640, growth_facto
 
 # Clase Dataset personalizada
 class VideoDatasetWithBuffer(Dataset):
-    def __init__(self, frames, labels, buffer_size=5, yolo=None, iou=0.1, resize=(640, 640)):
+    def __init__(self, frames, labels, buffer_size=5, yolo=None, iou=0.01, resize=(640, 640)):
         self.frames = frames
         self.labels = labels
         self.buffer_size = buffer_size
@@ -92,7 +92,7 @@ class VideoDatasetWithBuffer(Dataset):
             padding = torch.ones(self.buffer_size - len(labels), *labels[0].shape) * -1
             labels = torch.cat((padding, labels), dim=0)
 
-        yolo_output = self.yolo.predict(buffer[-1].unsqueeze(0), conf=0.01) if self.yolo else None
+        yolo_output = self.yolo.predict(buffer[-1].unsqueeze(0), conf=0.001) if self.yolo else None
         boxes, labels_chopped = [], []
 
         if yolo_output:
