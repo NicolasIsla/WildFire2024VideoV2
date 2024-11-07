@@ -35,7 +35,7 @@ os.makedirs(output_path, exist_ok=True)
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # Cargar el modelo YOLO y moverlo a la GPU si está disponible
-model_yolo = YOLO(args.yolo_path).to(device)
+model_yolo = YOLO(args.yolo_path)
 
 # Configuración de transformaciones
 transform = transforms.Compose([
@@ -88,13 +88,13 @@ class VideoDatasetWithBuffer(Dataset):
 
     def __getitem__(self, index):
         start_index = max(0, index - self.buffer_size + 1)
-        buffer = self.frames[start_index:index + 1].to(device)
-        labels = self.labels[start_index:index + 1].to(device)
+        buffer = self.frames[start_index:index + 1]
+        labels = self.labels[start_index:index + 1]
 
         if len(buffer) < self.buffer_size:
-            padding = torch.zeros(self.buffer_size - len(buffer), *buffer[0].shape).to(device)
+            padding = torch.zeros(self.buffer_size - len(buffer), *buffer[0].shape)
             buffer = torch.cat((padding, buffer), dim=0)
-            padding = torch.ones(self.buffer_size - len(labels), *labels[0].shape).to(device) * -1
+            padding = torch.ones(self.buffer_size - len(labels), *labels[0].shape) * -1
             labels = torch.cat((padding, labels), dim=0)
 
         yolo_output = self.yolo.predict(buffer[-1].unsqueeze(0), conf=0.001) if self.yolo else None
@@ -113,8 +113,8 @@ class VideoDatasetWithBuffer(Dataset):
 
                     chop = buffer[:, :, int(y1):int(y2), int(x1):int(x2)]
                     chop = torch.nn.functional.interpolate(chop, self.resize)
-                    labels_chopped.append(torch.tensor(detections).to(device))
-                    boxes.append(chop.to(device))
+                    labels_chopped.append(torch.tensor(detections))
+                    boxes.append(chop)
 
         if not boxes:
             return None, None
@@ -127,12 +127,12 @@ class ImageFeatureExtractor(nn.Module):
         super(ImageFeatureExtractor, self).__init__()
 
         if model_name == 'resnet50':
-            self.feature_extractor = models.resnet50(pretrained=pretrained).to(device)
+            self.feature_extractor = models.resnet50(pretrained=pretrained)
             self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1])
             feature_dim = 2048
 
         elif model_name == 'efficientnet_b0':
-            self.feature_extractor = models.efficientnet_b4(pretrained=pretrained).to(device)
+            self.feature_extractor = models.efficientnet_b4(pretrained=pretrained)
             self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1])
             feature_dim = 1792
 
@@ -142,15 +142,15 @@ class ImageFeatureExtractor(nn.Module):
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
 
-        self.fc = nn.Linear(feature_dim, output_features).to(device)
+        self.fc = nn.Linear(feature_dim, output_features)
 
     def forward(self, x):
         batch_size, sequence_length, C, H, W = x.size()
-        x = x.view(batch_size * sequence_length, C, H, W).to(device)
+        x = x.view(batch_size * sequence_length, C, H, W)
 
         features = self.feature_extractor(x)
         features = torch.flatten(features, 1)
-        out = features.view(batch_size, sequence_length, -1).to(device)
+        out = features.view(batch_size, sequence_length, -1)
 
         return out
 
@@ -160,7 +160,7 @@ def cargar_frames(carpeta):
     for frame in sorted(os.listdir(carpeta)):
         if frame.endswith(('.jpg', '.png')):
             img = Image.open(os.path.join(carpeta, frame)).convert('RGB')
-            frames.append(transform(img).to(device))
+            frames.append(transform(img))
 
             label_path = os.path.join(carpeta, 'labels', frame.replace('.jpg', '.txt'))
             if os.path.exists(label_path):
@@ -173,7 +173,7 @@ def cargar_frames(carpeta):
             else:
                 bounding_boxes.append([-1, -1, -1, -1])
 
-    return torch.stack(frames), torch.tensor(bounding_boxes, dtype=torch.float32).to(device)
+    return torch.stack(frames), torch.tensor(bounding_boxes, dtype=torch.float32)
 
 # Procesar carpetas y guardar chops
 resnet50 = ImageFeatureExtractor(model_name='resnet50')
@@ -207,7 +207,7 @@ for carpeta in tqdm(carpetas, desc="Procesando carpetas"):
             torch.save(labels, os.path.join(output_path, f"labels_{contador}.pt"))
 
             for model_name, model in models.items():
-                features = model(chop_boxes[0].to(device))  # Asegúrate de mover solo lo necesario a GPU
+                features = model(chop_boxes[0])  # Asegúrate de mover solo lo necesario a GPU
                 features = features.to('cpu')  # Mover a CPU después de calcular
                 torch.save(features, os.path.join(output_path, f"{model_name}_{contador}.pt"))
 
