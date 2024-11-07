@@ -128,12 +128,12 @@ class ImageFeatureExtractor(nn.Module):
 
         if model_name == 'resnet50':
             self.feature_extractor = models.resnet50(pretrained=pretrained)
-            self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1])
+            self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1]).to(device)
             feature_dim = 2048
 
         elif model_name == 'efficientnet_b0':
             self.feature_extractor = models.efficientnet_b4(pretrained=pretrained)
-            self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1])
+            self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1]).to(device)
             feature_dim = 1792
 
         else:
@@ -148,9 +148,11 @@ class ImageFeatureExtractor(nn.Module):
         batch_size, sequence_length, C, H, W = x.size()
         x = x.view(batch_size * sequence_length, C, H, W)
 
-        features = self.feature_extractor(x)
+        features = self.feature_extractor(x.to(device))
         features = torch.flatten(features, 1)
         out = features.view(batch_size, sequence_length, -1)
+        # to cpu
+        out = out.to('cpu')
 
         return out
 
