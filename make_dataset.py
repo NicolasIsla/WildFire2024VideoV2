@@ -180,7 +180,7 @@ def cargar_frames(carpeta):
 # Procesar carpetas y guardar chops
 resnet50 = ImageFeatureExtractor(model_name='resnet50')
 efficientnet_b0 = ImageFeatureExtractor(model_name='efficientnet_b0')
-models = {'efficientnet_b0': efficientnet_b0}
+models = {'efficientnet_b0': efficientnet_b0.half()}
 
 # Procesar y guardar los resultados
 from tqdm import tqdm
@@ -209,11 +209,13 @@ for carpeta in tqdm(carpetas, desc="Procesando carpetas"):
             torch.save(labels, os.path.join(output_path, f"labels_{contador}.pt"))
 
             for model_name, model in models.items():
-                features = model(chop_boxes[0])  # Asegúrate de mover solo lo necesario a GPU
+                features = model(chop_boxes[0].half())  # Asegúrate de mover solo lo necesario a GPU
                 features = features.to('cpu')  # Mover a CPU después de calcular
                 torch.save(features, os.path.join(output_path, f"{model_name}_{contador}.pt"))
 
         # Liberar memoria explícitamente
+        torch.cuda.empty_cache()
+        del chop_boxes, features, labels
         torch.cuda.empty_cache()
 
 
