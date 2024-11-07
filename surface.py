@@ -22,11 +22,18 @@ def calculate_average_bbox(labels_dir):
     average_bbox = bbox_sums / bbox_count
     return average_bbox
 
+# Function to find the labels directory recursively
+def find_labels_dir(root_dir):
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        if 'labels' in dirnames:
+            return os.path.join(dirpath, 'labels')
+    return None
+
 # Function to iterate over datasets and calculate average bounding boxes
 def main(datasets_dirs):
     for dataset in datasets_dirs:
-        labels_dir = os.path.join(dataset, 'labels')
-        if os.path.exists(labels_dir):
+        labels_dir = find_labels_dir(dataset)
+        if labels_dir:
             average_bbox = calculate_average_bbox(labels_dir)
             if average_bbox is not None:
                 print(f"Average bounding box for {dataset}: {average_bbox}")
@@ -42,9 +49,9 @@ datasets_dirs = [
     '/data/nisla/2019a-smoke-full/DS/',
     "/data/nisla/Nemo/DS/",
     "/data/nisla/DS_08_V2/",
-        "/data/nisla/DS_08_V1/DS/",
-            "/data/nisla/SmokesFrames-2.4k/",
-                "/data/nisla/AiForMankind/"    # Add more paths as necessary
+    "/data/nisla/DS_08_V1/DS/",
+    "/data/nisla/SmokesFrames-2.4k/",
+    "/data/nisla/AiForMankind/"    # Add more paths as necessary
 ]
 
 if __name__ == "__main__":
