@@ -90,13 +90,14 @@ class VideoDatasetWithBuffer(Dataset):
         labels = self.labels[start_index:index + 1]
 
         if len(buffer) < self.buffer_size:
-            padding = torch.zeros(self.buffer_size - len(buffer), *buffer[0].shape)
+            padding = torch.zeros(self.buffer_size - len(buffer), *buffer[0].shape).to(buffer[0].device)
             buffer = torch.cat((padding, buffer), dim=0)
-            padding = torch.ones(self.buffer_size - len(labels), *labels[0].shape) * -1
+            
+            padding = torch.ones(self.buffer_size - len(labels), *labels[0].shape).to(labels[0].device) * -1
             labels = torch.cat((padding, labels), dim=0)
 
-        yolo_output = self.yolo.predict(buffer[-1].unsqueeze(0), conf=0.001) if self.yolo else None
-        boxes, labels_chopped = [], []
+            yolo_output = self.yolo.predict(buffer[-1].unsqueeze(0), conf=0.001) if self.yolo else None
+            boxes, labels_chopped = [], []
 
         if yolo_output:
             for result in yolo_output:
