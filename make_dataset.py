@@ -178,7 +178,7 @@ def cargar_frames(carpeta):
 # Procesar carpetas y guardar chops
 resnet50 = ImageFeatureExtractor(model_name='resnet50')
 efficientnet_b0 = ImageFeatureExtractor(model_name='efficientnet_b0')
-models = {'resnet50': resnet50, 'efficientnet_b0': efficientnet_b0}
+models = {'efficientnet_b0': efficientnet_b0}
 
 # Procesar y guardar los resultados
 from tqdm import tqdm
