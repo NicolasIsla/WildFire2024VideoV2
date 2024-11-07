@@ -32,6 +32,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 path = args.data_path
 output_path = args.output_path
 os.makedirs(output_path, exist_ok=True)
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # Cargar el modelo YOLO y moverlo a la GPU si está disponible
 model_yolo = YOLO(args.yolo_path).to(device)
@@ -200,11 +201,19 @@ for carpeta in tqdm(carpetas, desc="Procesando carpetas"):
     data_loader = DataLoader(data, batch_size=1, shuffle=False)
 
     for chop_boxes, labels in tqdm(data_loader, desc=f"Procesando {carpeta}", leave=False):
-        contador += 1
-        torch.save(labels[0], os.path.join(output_path, f"labels_{contador}.pt"))
-        for model_name, model in models.items():
-            features = model(chop_boxes[0])
-            torch.save(features, os.path.join(output_path, f"{model_name}_{contador}.pt"))
+        with torch.no_grad():  # Desactivar gradientes
+            contador += 1
+            labels = labels[0].to('cpu')  # Mover a CPU si la memoria es limitada
+            torch.save(labels, os.path.join(output_path, f"labels_{contador}.pt"))
+
+            for model_name, model in models.items():
+                features = model(chop_boxes[0].to(device))  # Asegúrate de mover solo lo necesario a GPU
+                features = features.to('cpu')  # Mover a CPU después de calcular
+                torch.save(features, os.path.join(output_path, f"{model_name}_{contador}.pt"))
+
+        # Liberar memoria explícitamente
+        torch.cuda.empty_cache()
+
 
 print("Proceso completado.")
 
