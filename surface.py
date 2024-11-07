@@ -1,9 +1,6 @@
 import os
 import numpy as np
 
-# Function to calculate average bounding box for a given YOLO labels directory
-import os
-import numpy as np
 
 # Function to calculate average bounding box for a given YOLO labels directory
 def calculate_average_bbox(labels_dir):
@@ -45,16 +42,29 @@ def find_all_labels_dirs(root_dir):
     return labels_dirs
 
 # Function to iterate over datasets and calculate average bounding boxes
+# Combines results from train, val, and test for each dataset
 def main(datasets_dirs):
     for dataset in datasets_dirs:
         labels_dirs = find_all_labels_dirs(dataset)
+        combined_bbox_sums = np.zeros(4)
+        combined_surface = 0
+        combined_count = 0
+
         if labels_dirs:
             for labels_dir in labels_dirs:
                 average_bbox, surface = calculate_average_bbox(labels_dir)
                 if average_bbox is not None:
-                    print(f"Average bounding box for {dataset} ({labels_dir}): {average_bbox}, surface: {surface}")
-                else:
-                    print(f"No bounding boxes found in {dataset} ({labels_dir})")
+                    num_files = len([f for f in os.listdir(labels_dir) if f.endswith('.txt')])
+                    combined_bbox_sums += average_bbox * num_files
+                    combined_surface += surface * num_files
+                    combined_count += num_files
+
+            if combined_count > 0:
+                final_average_bbox = combined_bbox_sums / combined_count
+                final_surface = combined_surface / combined_count
+                print(f"Combined average bounding box for {dataset}: {final_average_bbox}, surface: {final_surface}")
+            else:
+                print(f"No bounding boxes found in {dataset}")
         else:
             print(f"Labels directory not found in {dataset}")
 
@@ -69,6 +79,9 @@ datasets_dirs = [
     "/data/nisla/SmokesFrames-2.4k/",
     "/data/nisla/AiForMankind/"    # Add more paths as necessary
 ]
+
+if __name__ == "__main__":
+    main(datasets_dirs)
 
 if __name__ == "__main__":
     main(datasets_dirs)
