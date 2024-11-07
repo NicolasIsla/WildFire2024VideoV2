@@ -1,3 +1,5 @@
+# Modificaciones para utilizar la GPU
+
 # Importaciones estándar
 import os
 import random
@@ -23,15 +25,15 @@ parser.add_argument('--buffer_size', type=int, default=5, help='Tamaño del buff
 parser.add_argument('--iou', type=float, default=0.01, help='Umbral de IoU para considerar una detección válida.')
 args = parser.parse_args()
 
+# Configuración para utilizar GPU si está disponible
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Definición de rutas
 path = args.data_path
 output_path = args.output_path
 os.makedirs(output_path, exist_ok=True)
 
-# Cargar el modelo YOLO
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Cargar el modelo YOLO en GPU
+# Cargar el modelo YOLO y moverlo a la GPU si está disponible
 model_yolo = YOLO(args.yolo_path).to(device)
 
 # Configuración de transformaciones
@@ -56,7 +58,6 @@ def calculate_iou(box1, box2):
 
     union = area_box1 + area_box2 - intersection
     return intersection / union if union > 0 else 0
-
 
 def make_square_chop(y1, y2, x1, x2, img_height=640, img_width=640, growth_factor=1.1):
     center_y = (y1 + y2) / 2
@@ -86,18 +87,17 @@ class VideoDatasetWithBuffer(Dataset):
 
     def __getitem__(self, index):
         start_index = max(0, index - self.buffer_size + 1)
-        buffer = self.frames[start_index:index + 1]
-        labels = self.labels[start_index:index + 1]
+        buffer = self.frames[start_index:index + 1].to(device)
+        labels = self.labels[start_index:index + 1].to(device)
 
         if len(buffer) < self.buffer_size:
-            padding = torch.zeros(self.buffer_size - len(buffer), *buffer[0].shape).to(buffer[0].device)
+            padding = torch.zeros(self.buffer_size - len(buffer), *buffer[0].shape).to(device)
             buffer = torch.cat((padding, buffer), dim=0)
-            
-            padding = torch.ones(self.buffer_size - len(labels), *labels[0].shape).to(labels[0].device) * -1
+            padding = torch.ones(self.buffer_size - len(labels), *labels[0].shape).to(device) * -1
             labels = torch.cat((padding, labels), dim=0)
 
-            yolo_output = self.yolo.predict(buffer[-1].unsqueeze(0), conf=0.001) if self.yolo else None
-            boxes, labels_chopped = [], []
+        yolo_output = self.yolo.predict(buffer[-1].unsqueeze(0), conf=0.001) if self.yolo else None
+        boxes, labels_chopped = [], []
 
         if yolo_output:
             for result in yolo_output:
@@ -112,8 +112,8 @@ class VideoDatasetWithBuffer(Dataset):
 
                     chop = buffer[:, :, int(y1):int(y2), int(x1):int(x2)]
                     chop = torch.nn.functional.interpolate(chop, self.resize)
-                    labels_chopped.append(torch.tensor(detections))
-                    boxes.append(chop)
+                    labels_chopped.append(torch.tensor(detections).to(device))
+                    boxes.append(chop.to(device))
 
         if not boxes:
             return None, None
@@ -126,12 +126,12 @@ class ImageFeatureExtractor(nn.Module):
         super(ImageFeatureExtractor, self).__init__()
 
         if model_name == 'resnet50':
-            self.feature_extractor = models.resnet50(pretrained=pretrained)
+            self.feature_extractor = models.resnet50(pretrained=pretrained).to(device)
             self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1])
             feature_dim = 2048
 
         elif model_name == 'efficientnet_b0':
-            self.feature_extractor = models.efficientnet_b4(pretrained=pretrained)
+            self.feature_extractor = models.efficientnet_b4(pretrained=pretrained).to(device)
             self.feature_extractor = nn.Sequential(*list(self.feature_extractor.children())[:-1])
             feature_dim = 1792
 
@@ -141,20 +141,19 @@ class ImageFeatureExtractor(nn.Module):
         for param in self.feature_extractor.parameters():
             param.requires_grad = False
 
-        self.fc = nn.Linear(feature_dim, output_features)
+        self.fc = nn.Linear(feature_dim, output_features).to(device)
 
     def forward(self, x):
         batch_size, sequence_length, C, H, W = x.size()
-        x = x.view(batch_size * sequence_length, C, H, W)
+        x = x.view(batch_size * sequence_length, C, H, W).to(device)
 
         features = self.feature_extractor(x)
         features = torch.flatten(features, 1)
-        out = features.view(batch_size, sequence_length, -1)
+        out = features.view(batch_size, sequence_length, -1).to(device)
 
         return out
 
 # Cargar frames y bounding boxes
-
 def cargar_frames(carpeta):
     frames, bounding_boxes = [], []
     for frame in sorted(os.listdir(carpeta)):
@@ -167,7 +166,7 @@ def cargar_frames(carpeta):
                 with open(label_path) as f:
                     for line in f:
                         class_id, x_centro, y_centro, ancho, alto = map(float, line.strip().split())
-                        x_min, y_min = x_centro - ancho / 2, y_centro - alto / 2
+                        x_min, y_min = x_centro - ancho / 2, y_centro -alto / 2
                         x_max, y_max = x_centro + ancho / 2, y_centro + alto / 2
                         bounding_boxes.append([x_min, y_min, x_max, y_max])
             else:
@@ -184,7 +183,7 @@ models = {'resnet50': resnet50, 'efficientnet_b0': efficientnet_b0}
 from tqdm import tqdm
 
 carpetas = [carpeta for carpeta in os.listdir(path) if os.path.isdir(os.path.join(path, carpeta))]
-contador =0
+contador = 0
 for carpeta in tqdm(carpetas, desc="Procesando carpetas"):
     carpeta_path = os.path.join(path, carpeta)
     frames, bounding_boxes = cargar_frames(carpeta_path)
@@ -201,12 +200,11 @@ for carpeta in tqdm(carpetas, desc="Procesando carpetas"):
     data_loader = DataLoader(data, batch_size=1, shuffle=False)
 
     for chop_boxes, labels in tqdm(data_loader, desc=f"Procesando {carpeta}", leave=False):
-        chop_boxes, labels = chop_boxes.to(device), labels.to(device)
         contador += 1
-        torch.save(labels[0].cpu(), os.path.join(output_path, f"labels_{contador}.pt"))
+        torch.save(labels[0], os.path.join(output_path, f"labels_{contador}.pt"))
         for model_name, model in models.items():
-            features = model(chop_boxes[0]).cpu()
+            features = model(chop_boxes[0])
             torch.save(features, os.path.join(output_path, f"{model_name}_{contador}.pt"))
 
-
 print("Proceso completado.")
+
