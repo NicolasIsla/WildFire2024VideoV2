@@ -62,7 +62,7 @@ def main(datasets_dirs):
             if combined_count > 0:
                 final_average_bbox = combined_bbox_sums / combined_count
                 final_surface = combined_surface / combined_count
-                print(f"Combined average bounding box for {dataset}: {final_average_bbox}, surface: {final_surface}")
+                print(f"Combined average bounding box for {dataset}: {final_average_bbox}, surface: {final_surface*100}")
             else:
                 print(f"No bounding boxes found in {dataset}")
         else:
