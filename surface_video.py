@@ -9,7 +9,12 @@ def calculate_average_bbox(labels_dir):
 
     for label_file in os.listdir(labels_dir):
         if label_file.endswith('.txt'):
-            with open(os.path.join(labels_dir, label_file), 'r') as f:
+            file_path = os.path.join(labels_dir, label_file)
+            # Skip empty files
+            if os.path.getsize(file_path) == 0:
+                continue
+            
+            with open(file_path, 'r') as f:
                 for line in f:
                     # Assuming the format: class_id x_center y_center width height
                     _, x_center, y_center, width, height = map(float, line.split())
@@ -70,3 +75,4 @@ datasets_dirs = [
 
 if __name__ == "__main__":
     main(datasets_dirs)
+
