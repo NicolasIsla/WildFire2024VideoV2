@@ -49,7 +49,7 @@ def main(datasets_dirs):
             for labels_dir in labels_dirs:
                 average_bbox, surface = calculate_average_bbox(labels_dir)
                 if average_bbox is not None:
-                    num_files = len([f for f in os.listdir(labels_dir) if f.endswith('.txt')])
+                    num_files = len([f for f in os.listdir(labels_dir) if f.endswith('.txt') and os.path.getsize(os.path.join(labels_dir, f)) > 0])
                     combined_bbox_sums += average_bbox * num_files
                     combined_surface += surface * num_files
                     combined_count += num_files
