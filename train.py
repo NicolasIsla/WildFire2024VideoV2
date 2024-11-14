@@ -9,10 +9,11 @@ import torch.optim as optim
 
 
 # Load the dataset
-final_dataset_path = "features.pt"
+final_dataset_path = "buffer.pt"
 chops = torch.load(final_dataset_path)
 final_dataset_path = "labels.pt"
 
 print(chops.shape)
 labels = torch.load(final_dataset_path)
 print(labels.shape)
+
