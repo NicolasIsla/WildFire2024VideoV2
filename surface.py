@@ -71,14 +71,14 @@ def main(datasets_dirs):
 # List of dataset directories (modify as needed)
 datasets_dirs = [
     # '/data/nisla/Datav3/datav3/',
-    '/data/nisla/Smoke50v3/DS/',
-    '/data/nisla/2019a-smoke-full/DS/',
-    "/data/nisla/Nemo/DS/",
-    "/data/nisla/DS_08_V2/",
-    "/data/nisla/DS_08_V1/DS/",
+    # '/data/nisla/Smoke50v3/DS/',
+    # '/data/nisla/2019a-smoke-full/DS/',
+    # "/data/nisla/Nemo/DS/",
+    # "/data/nisla/DS_08_V2/",
+    # "/data/nisla/DS_08_V1/DS/",
     "/data/nisla/SmokesFrames-2.4k/",
-    "/data/nisla/AiForMankind/"    # Add more paths as necessary
-    "/data/nisla/TestSmokeFull/smoke_frame_test/"
+    # "/data/nisla/AiForMankind/"    # Add more paths as necessary
+    "/data/nisla/TestSmokeFull/"
 
 ]
 
