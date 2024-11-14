@@ -91,7 +91,7 @@ extractor = ImageFeatureExtractor(model_name='resnet50', pretrained=True, output
 features_list = []
 labels_list = []
 
- Procesar videos y extraer características
+#  Procesar videos y extraer características
 for video in tqdm(data["video"].unique(), desc="Procesando videos", unit="video"):
     print(f"Procesando video: {video}")
     frames = os.listdir(dataset_path + "/" + video)
