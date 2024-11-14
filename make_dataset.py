@@ -47,6 +47,20 @@ to_pil = ToPILImage()
 
 # Funciones de utilidad
 
+def True_filler(lista):
+    dentro_rango = False
+    for i in range(len(lista)):
+        if lista[i] is True:
+            if not dentro_rango:
+                inicio = i
+                dentro_rango = True
+            else:
+                # Llena todo lo que esté entre el inicio y el índice actual con True
+                for j in range(inicio + 1, i):
+                    lista[j] = True
+                inicio = i  # Actualiza el inicio al último True encontrado
+    return lista
+
 def calculate_iou(box1, box2):
     x1_max = max(box1[0], box2[0])
     y1_max = max(box1[1], box2[1])
@@ -108,6 +122,9 @@ class VideoDatasetWithBuffer(Dataset):
                         continue
 
                     detections = [calculate_iou([x1, y1, x2, y2], label) > self.iou for label in labels]
+                    # entre 2 true todo es true
+                    detections = True_filler(detections)
+
                     x1, y1, x2, y2 = x1 * self.resize[0], y1 * self.resize[1], x2 * self.resize[0], y2 * self.resize[1]
                     y1, y2, x1, x2 = make_square_chop(y1, y2, x1, x2)
 

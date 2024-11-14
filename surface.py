@@ -10,7 +10,7 @@ def calculate_average_bbox(labels_dir):
 
     for label_file in os.listdir(labels_dir):
         if label_file.endswith('.txt'):
-            with open(os.path.join(labels_dir, label_file), 'r') as f:
+            with open(os.path.join(labels_dir, labe l_file), 'r') as f:
                 for line in f:
                     # Assuming the format: class_id x_center y_center width height
                     _, x_center, y_center, width, height = map(float, line.split())
@@ -70,7 +70,7 @@ def main(datasets_dirs):
 
 # List of dataset directories (modify as needed)
 datasets_dirs = [
-    '/data/nisla/Datav3/datav3/',
+    # '/data/nisla/Datav3/datav3/',
     '/data/nisla/Smoke50v3/DS/',
     '/data/nisla/2019a-smoke-full/DS/',
     "/data/nisla/Nemo/DS/",
@@ -78,6 +78,7 @@ datasets_dirs = [
     "/data/nisla/DS_08_V1/DS/",
     "/data/nisla/SmokesFrames-2.4k/",
     "/data/nisla/AiForMankind/"    # Add more paths as necessary
+    "/data/nisla/TestSmokeFull/smoke_frame_test/"
 ]
 
 if __name__ == "__main__":
