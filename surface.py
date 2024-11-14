@@ -83,6 +83,7 @@ datasets_dirs = [
     "/data/nisla/SmokesFrames-2.4k/",
     "/data/nisla/AiForMankind/"    # Add more paths as necessary
     "/data/nisla/TestSmokeFull/smoke_frame_test/"
+
 ]
 
 if __name__ == "__main__":
