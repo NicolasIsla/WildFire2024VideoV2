@@ -93,11 +93,14 @@ labels_list = []
 buffers_list = []
 
 #  Procesar videos y extraer características
+n_videos = 0
 for video in tqdm(data["video"].unique(), desc="Procesando videos", unit="video"):
     print(f"Procesando video: {video}")
     frames = os.listdir(dataset_path + "/" + video)
     frames.sort()
     dff = data[data["video"] == video]
+    n_videos += 1
+
     
     with tqdm(total=len(dff), desc=f"Frames en {video}", unit="frame") as pbar:
         for _, row in dff.iterrows():
@@ -150,6 +153,8 @@ for video in tqdm(data["video"].unique(), desc="Procesando videos", unit="video"
             labels_list.append(torch.tensor(labels))
 
             pbar.update(1)  # Actualizar la barra de progreso para f
+    if n_videos == 400:
+        break
 
 # Convertir listas a tensores
 features_tensor = torch.stack(features_list)  # Tensor de características
