@@ -3,7 +3,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet50, ResNet50_Weights
-# from torchcrf import CRF
+from torchcrf import CRF
 import torch.optim as optim
 
 # Define device configuration
