@@ -101,8 +101,9 @@ for video in tqdm(data["video"].unique(), desc="Procesando videos", unit="video"
     with tqdm(total=len(dff), desc=f"Frames en {video}", unit="frame") as pbar:
         for _, row in dff.iterrows():
             frame = row["frame"]
-            # box = row["box"]  # Formato [x1, y1, x2, y2]
+            box = row["box"]  # Formato [x1, y1, x2, y2]
             box = list(map(float, box[1:-1].split(", ")))
+
             labels = [row["t_4"], row["t_3"], row["t_2"], row["t_1"], row["t_0"]]
             
             # Encontrar la posición del frame actual en la lista de frames
