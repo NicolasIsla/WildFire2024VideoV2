@@ -90,6 +90,7 @@ extractor = ImageFeatureExtractor(model_name='resnet50', pretrained=True, output
 # Listas para almacenar características y etiquetas
 features_list = []
 labels_list = []
+buffers_list = []
 
 #  Procesar videos y extraer características
 for video in tqdm(data["video"].unique(), desc="Procesando videos", unit="video"):
@@ -136,7 +137,9 @@ for video in tqdm(data["video"].unique(), desc="Procesando videos", unit="video"
 
             # Transformar las imágenes del buffer
             buffer = [transform(img) for img in buffer]
+            buffer_tensor = torch.stack(buffer).to(device)  # (seq_len, C, H, W)
             buffer = torch.stack(buffer).unsqueeze(0).to(device)  # Batch x Sequence x C x H x W
+            buffers_list.append(buffer_tensor.cpu())  # Guardar en la lista, pasando a CPU si es necesario
 
             # Extraer características
             with torch.no_grad():
@@ -157,6 +160,7 @@ output_path_features = "features.pt"
 output_path_labels = "labels.pt"
 torch.save(features_tensor, output_path_features)
 torch.save(labels_tensor, output_path_labels)
+torch.save(buffers_list, "buffers.pt")
 
 print(f"Características guardadas en: {output_path_features}")
 print(f"Etiquetas guardadas en: {output_path_labels}")

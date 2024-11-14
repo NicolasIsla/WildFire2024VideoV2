@@ -6,8 +6,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 from torchcrf import CRF
 import torch.optim as optim
 
-# Define device configuration
-device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
+
 
 # Load the dataset
 final_dataset_path = "features.pt"
