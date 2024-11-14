@@ -91,57 +91,61 @@ extractor = ImageFeatureExtractor(model_name='resnet50', pretrained=True, output
 features_list = []
 labels_list = []
 
-# Procesar videos y extraer características
-for video in tqdm(data["video"].unique()):
+ Procesar videos y extraer características
+for video in tqdm(data["video"].unique(), desc="Procesando videos", unit="video"):
     print(f"Procesando video: {video}")
     frames = os.listdir(dataset_path + "/" + video)
     frames.sort()
     dff = data[data["video"] == video]
     
-    for _, row in dff.iterrows():
-        frame = row["frame"]
-        # box = row["box"]  # Formato [x1, y1, x2, y2]
-        box = list(map(float, box[1:-1].split(", ")))
-        labels = [row["t_4"], row["t_3"], row["t_2"], row["t_1"], row["t_0"]]
-        
-        # Encontrar la posición del frame actual en la lista de frames
-        try:
-            current_index = frames.index(frame)
-        except ValueError:
-            print(f"Frame {frame} no encontrado en la lista de frames para el video {video}.")
-            continue
-        
-        # Crear un buffer con los 4 frames anteriores más el actual
-        buffer = []
-        for i in range(4, -1, -1):  # Desde el frame actual hasta 4 frames atrás
-            frame_index = current_index - i
-            if frame_index < 0 or frame_index >= len(frames):  # Índice inválido
-                buffer.append(np.zeros((640, 640, 3), dtype=np.uint8))  # Imagen vacía
-            else:
-                img = cv2.imread(dataset_path + "/" + video + "/" + frames[frame_index])
-                if img is None:
-                    buffer.append(np.zeros((640, 640, 3), dtype=np.uint8))
+    with tqdm(total=len(dff), desc=f"Frames en {video}", unit="frame") as pbar:
+        for _, row in dff.iterrows():
+            frame = row["frame"]
+            # box = row["box"]  # Formato [x1, y1, x2, y2]
+            box = list(map(float, box[1:-1].split(", ")))
+            labels = [row["t_4"], row["t_3"], row["t_2"], row["t_1"], row["t_0"]]
+            
+            # Encontrar la posición del frame actual en la lista de frames
+            try:
+                current_index = frames.index(frame)
+            except ValueError:
+                print(f"Frame {frame} no encontrado en la lista de frames para el video {video}.")
+                pbar.update(1)
+                continue
+            
+            # Crear un buffer con los 4 frames anteriores más el actual
+            buffer = []
+            for i in range(4, -1, -1):  # Desde el frame actual hasta 4 frames atrás
+                frame_index = current_index - i
+                if frame_index < 0 or frame_index >= len(frames):  # Índice inválido
+                    buffer.append(np.zeros((640, 640, 3), dtype=np.uint8))  # Imagen vacía
                 else:
-                    img_height, img_width, _ = img.shape
-                    x1, y1, x2, y2 = box
-                    x1 = int(x1 * img_width)
-                    x2 = int(x2 * img_width)
-                    y1 = int(y1 * img_height)
-                    y2 = int(y2 * img_height)
-                    cropped_img = img[y1:y2, x1:x2]
-                    buffer.append(cropped_img)
+                    img = cv2.imread(dataset_path + "/" + video + "/" + frames[frame_index])
+                    if img is None:
+                        buffer.append(np.zeros((640, 640, 3), dtype=np.uint8))
+                    else:
+                        img_height, img_width, _ = img.shape
+                        x1, y1, x2, y2 = box
+                        x1 = int(x1 * img_width)
+                        x2 = int(x2 * img_width)
+                        y1 = int(y1 * img_height)
+                        y2 = int(y2 * img_height)
+                        cropped_img = img[y1:y2, x1:x2]
+                        buffer.append(cropped_img)
 
-        # Transformar las imágenes del buffer
-        buffer = [transform(img) for img in buffer]
-        buffer = torch.stack(buffer).unsqueeze(0).to(device)  # Batch x Sequence x C x H x W
+            # Transformar las imágenes del buffer
+            buffer = [transform(img) for img in buffer]
+            buffer = torch.stack(buffer).unsqueeze(0).to(device)  # Batch x Sequence x C x H x W
 
-        # Extraer características
-        with torch.no_grad():
-            features = extractor(buffer)
+            # Extraer características
+            with torch.no_grad():
+                features = extractor(buffer)
 
-        # Guardar características y etiquetas
-        features_list.append(features.squeeze(0))  # Sin batch dimension
-        labels_list.append(torch.tensor(labels))
+            # Guardar características y etiquetas
+            features_list.append(features.squeeze(0))  # Sin batch dimension
+            labels_list.append(torch.tensor(labels))
+
+            pbar.update(1)  # Actualizar la barra de progreso para f
 
 # Convertir listas a tensores
 features_tensor = torch.stack(features_list)  # Tensor de características
