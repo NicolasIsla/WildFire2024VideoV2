@@ -1,7 +1,6 @@
 import os
 import numpy as np
 
-
 # Function to calculate average bounding box for a given YOLO labels directory
 def calculate_average_bbox(labels_dir):
     bbox_sums = np.zeros(4)  # To store the sum of (x_center, y_center, width, height)
@@ -26,7 +25,12 @@ def calculate_average_bbox(labels_dir):
     surface = surface / bbox_count
     return average_bbox, surface
 
-# Function to find all labels directories recursively, including train, val, and test
+# Function to find train, val, test subdirectories inside a labels directory
+def find_subdirs(labels_dir):
+    subdirs = ['train', 'val', 'test']
+    return [os.path.join(labels_dir, subdir) for subdir in subdirs if os.path.exists(os.path.join(labels_dir, subdir))]
+
+# Function to find all labels directories recursively
 def find_all_labels_dirs(root_dir):
     labels_dirs = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
@@ -41,32 +45,29 @@ def find_all_labels_dirs(root_dir):
                 labels_dirs.append(labels_path)
     return labels_dirs
 
-# Function to iterate over datasets and calculate average bounding boxes
-# Combines results from train, val, and test for each dataset
+# Main function to process datasets
 def main(datasets_dirs):
     for dataset in datasets_dirs:
+        print(f"\nProcessing dataset: {dataset}")
         labels_dirs = find_all_labels_dirs(dataset)
-        combined_bbox_sums = np.zeros(4)
-        combined_surface = 0
-        combined_count = 0
 
-        if labels_dirs:
-            for labels_dir in labels_dirs:
-                average_bbox, surface = calculate_average_bbox(labels_dir)
+        if not labels_dirs:
+            print(f"No labels directory found in {dataset}")
+            continue
+
+        for labels_dir in labels_dirs:
+            print(f"\nIn directory: {labels_dir}")
+            subdirs = find_subdirs(labels_dir)
+
+            for subdir in subdirs:
+                print(f"  Processing subset: {os.path.basename(subdir)}")
+                average_bbox, surface = calculate_average_bbox(subdir)
+
                 if average_bbox is not None:
-                    num_files = len([f for f in os.listdir(labels_dir) if f.endswith('.txt')])
-                    combined_bbox_sums += average_bbox * num_files
-                    combined_surface += surface * num_files
-                    combined_count += num_files
-
-            if combined_count > 0:
-                final_average_bbox = combined_bbox_sums / combined_count
-                final_surface = combined_surface / combined_count
-                print(f"Combined average bounding box for {dataset}: {final_average_bbox}, surface: {final_surface*100}")
-            else:
-                print(f"No bounding boxes found in {dataset}")
-        else:
-            print(f"Labels directory not found in {dataset}")
+                    print(f"    Average bounding box: {average_bbox}")
+                    print(f"    Average surface: {surface * 100:.2f}%")
+                else:
+                    print(f"    No bounding boxes found in {subdir}")
 
 # List of dataset directories (modify as needed)
 datasets_dirs = [
@@ -74,11 +75,11 @@ datasets_dirs = [
     # '/data/nisla/Smoke50v3/DS/',
     # '/data/nisla/2019a-smoke-full/DS/',
     # "/data/nisla/Nemo/DS/",
-    # "/data/nisla/DS_08_V2/",
-    # "/data/nisla/DS_08_V1/DS/",
-    "/data/nisla/SmokesFrames-2.4k/",
+    "/data/nisla/DS_08_V2/DS",
+    "/data/nisla/DS_08_V1/DS/",
+    # "/data/nisla/SmokesFrames-2.4k/",
     # "/data/nisla/AiForMankind/"    # Add more paths as necessary
-    "/data/nisla/TestSmokeFull/"
+    # "/data/nisla/TestSmokeFull/"
 
 ]
 

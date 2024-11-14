@@ -161,11 +161,11 @@ features_tensor = torch.stack(features_list)  # Tensor de características
 labels_tensor = torch.stack(labels_list)     # Tensor de etiquetas
 
 # Guardar en archivo binario
-output_path_features = "features.pt"
-output_path_labels = "labels.pt"
+output_path_features = "/data/nisla/features.pt"
+output_path_labels = "/data/nisla/labels.pt"
 torch.save(features_tensor, output_path_features)
 torch.save(labels_tensor, output_path_labels)
-torch.save(buffers_list, "buffers.pt")
+torch.save(buffers_list, "/data/nisla/buffers.pt")
 
 print(f"Características guardadas en: {output_path_features}")
 print(f"Etiquetas guardadas en: {output_path_labels}")
