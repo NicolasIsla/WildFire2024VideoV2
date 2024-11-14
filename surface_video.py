@@ -1,7 +1,6 @@
 import os
 import numpy as np
 
-
 # Function to calculate average bounding box for a given YOLO labels directory
 def calculate_average_bbox(labels_dir):
     bbox_sums = np.zeros(4)  # To store the sum of (x_center, y_center, width, height)
@@ -10,7 +9,12 @@ def calculate_average_bbox(labels_dir):
 
     for label_file in os.listdir(labels_dir):
         if label_file.endswith('.txt'):
-            with open(os.path.join(labels_dir, labe l_file), 'r') as f:
+            file_path = os.path.join(labels_dir, label_file)
+            # Skip empty files
+            if os.path.getsize(file_path) == 0:
+                continue
+            
+            with open(file_path, 'r') as f:
                 for line in f:
                     # Assuming the format: class_id x_center y_center width height
                     _, x_center, y_center, width, height = map(float, line.split())
@@ -26,23 +30,19 @@ def calculate_average_bbox(labels_dir):
     surface = surface / bbox_count
     return average_bbox, surface
 
-# Function to find all labels directories recursively, including train, val, and test
+# Function to find label directories within the train, val, and test folders
 def find_all_labels_dirs(root_dir):
     labels_dirs = []
-    for dirpath, dirnames, filenames in os.walk(root_dir):
-        if 'labels' in dirnames:
-            labels_path = os.path.join(dirpath, 'labels')
-            subdirs = ['train', 'val', 'test']
-            for subdir in subdirs:
-                subdir_path = os.path.join(labels_path, subdir)
-                if os.path.exists(subdir_path):
-                    labels_dirs.append(subdir_path)
-            if not any(subdir in labels_path for subdir in subdirs):
-                labels_dirs.append(labels_path)
+    for split in ['train', 'val', 'test']:
+        split_path = os.path.join(root_dir, split)
+        if os.path.exists(split_path):
+            for frame_dir in os.listdir(split_path):
+                frame_path = os.path.join(split_path, frame_dir)
+                if os.path.isdir(frame_path):
+                    labels_dirs.append(frame_path)
     return labels_dirs
 
-# Function to iterate over datasets and calculate average bounding boxes
-# Combines results from train, val, and test for each dataset
+# Main function to iterate over datasets and calculate average bounding boxes
 def main(datasets_dirs):
     for dataset in datasets_dirs:
         labels_dirs = find_all_labels_dirs(dataset)
@@ -54,7 +54,7 @@ def main(datasets_dirs):
             for labels_dir in labels_dirs:
                 average_bbox, surface = calculate_average_bbox(labels_dir)
                 if average_bbox is not None:
-                    num_files = len([f for f in os.listdir(labels_dir) if f.endswith('.txt')])
+                    num_files = len([f for f in os.listdir(labels_dir) if f.endswith('.txt') and os.path.getsize(os.path.join(labels_dir, f)) > 0])
                     combined_bbox_sums += average_bbox * num_files
                     combined_surface += surface * num_files
                     combined_count += num_files
@@ -66,27 +66,13 @@ def main(datasets_dirs):
             else:
                 print(f"No bounding boxes found in {dataset}")
         else:
-            print(f"Labels directory not found in {dataset}")
+            print(f"No label directories found in {dataset}")
 
 # List of dataset directories (modify as needed)
 datasets_dirs = [
-<<<<<<< HEAD
-    # '/data/nisla/Datav3/datav3/',
-=======
-    '/data/nisla/data/',
->>>>>>> a4e73e68154bb012f6121e6bdee3d2ac19bc1e45
-    '/data/nisla/Smoke50v3/DS/',
-    '/data/nisla/2019a-smoke-full/DS/',
-    "/data/nisla/Nemo/DS/",
-    "/data/nisla/DS_08_V2/",
-    "/data/nisla/DS_08_V1/DS/",
-    "/data/nisla/SmokesFrames-2.4k/",
-    "/data/nisla/AiForMankind/"    # Add more paths as necessary
-    "/data/nisla/TestSmokeFull/smoke_frame_test/"
+    '/data/nisla/data/',  # Adjust paths as necessary
 ]
 
 if __name__ == "__main__":
     main(datasets_dirs)
 
-if __name__ == "__main__":
-    main(datasets_dirs)
