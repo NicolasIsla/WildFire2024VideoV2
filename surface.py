@@ -73,7 +73,7 @@ datasets_dirs = [
 <<<<<<< HEAD
     # '/data/nisla/Datav3/datav3/',
 =======
-    '/data/nisla/data/',
+    # '/data/nisla/data/',
 >>>>>>> a4e73e68154bb012f6121e6bdee3d2ac19bc1e45
     '/data/nisla/Smoke50v3/DS/',
     '/data/nisla/2019a-smoke-full/DS/',
